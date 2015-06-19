@@ -1,23 +1,26 @@
-
 #include <SPI.h>
 #include <MFRC522.h>
 #include <pitches.h>
 
-const int on = 2;
-const int off = 4;
-const int duration = 50;
-const int interval = 50;
+#define RST_PIN 9
+#define SS_PIN 10
 
-bool checkedIn = false;
+/////////////////////////////////////////////////////////////////////////
 
+//                          6           2           9         1          5          4           7           8           3
 
+int testOn [] =             {3,         3,          2,        3,         3,         3,          2,          2,         3};
+int testOff [] =            {2,         2,          4,        2,         2,         2,          4,          4,         2};
+int testDuration [] =       {50,        100,        30,       100,        50,       50,         30,        30,        100};
+int testInterval [] =       {50,        50,         50,       50,        50,        50,         50,        50,         50};
+String testSituation [] =   {"error",   "uitcheck", "error",  "incheck", "incheck", "uitcheck", "incheck", "uitcheck", "error"};
 
-#define RST_PIN         9
-#define SS_PIN          10
+int testPosition = 0;
+/////////////////////////////////////////////////////////////////////////
 
 const int redLed =  7;      // the number of the LED pin
 const int greenLed = 6;
-const int speaker = 5;
+const int speaker = 4;
 const int motorPin = 3;
 const int buttonPin = 2;
 
@@ -50,9 +53,9 @@ MFRC522::MIFARE_Key key;
  * Initialize.
  */
 void setup() {
+
   pinMode(redLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
-  digitalWrite(greenLed, HIGH);
   pinMode(motorPin, OUTPUT);
   pinMode(buttonPin, INPUT);
 
@@ -86,41 +89,21 @@ void loop() {
   cardID.toUpperCase();
 
   if (cardID != "") {
-    Serial.println("const: " + accessCard);
-    Serial.println("cardID: " + cardID);
-    if (cardID == accessCard) {
-      if (checkedIn) {
-        checkedIn = false;
-        checkOut();
-      }
-      else {
-        checkedIn = true;
-        checkIn();
-      }
+    Serial.println(testPosition + 1);
+    if (testSituation[testPosition] == "incheck") {
+      checkIn(testOn[testPosition], testOff[testPosition], testDuration[testPosition]);
+    }
+    else if (testSituation[testPosition] == "uitcheck") {
+      checkOut(testOn[testPosition], testOff[testPosition], testDuration[testPosition], testInterval[testPosition]);
     }
     else {
-      checkError();
+      checkError(testOn[testPosition], testOff[testPosition], testDuration[testPosition], testInterval[testPosition]);
+    }
+    testPosition++;
+    if (testPosition >= 9) {
+      testPosition = 0;
     }
   }
-
-  buttonState = digitalRead(buttonPin);
-
-  if (state && buttonState == HIGH) {
-    state = false;
-    doPulse(3, 2, 50);
-  }
-
-  if (buttonState == LOW) {
-    state = true;
-  }
-
-  //  digitalWrite(redLed, HIGH);
-  //  digitalWrite(greenLed, LOW);
-  //  delay(500);
-  //  digitalWrite(redLed, LOW);
-  //  digitalWrite(greenLed, HIGH);
-  //  delay(500);
-  //   getID();
 }
 
 /**
@@ -305,51 +288,38 @@ void doPulse(int on, int off, int duration) {
   }
 }
 
-void checkIn() {
-  digitalWrite(greenLed, LOW);
+void checkIn(int on, int off, int duration) {
+  digitalWrite(greenLed, HIGH);
   note(1000, 3);
-  digitalWrite(greenLed, HIGH);
   doPulse(on, off, duration);
-  digitalWrite(greenLed, LOW);
   delay(500);
-  digitalWrite(greenLed, HIGH);
+  digitalWrite(greenLed, LOW);
 }
 
-void checkOut() {
-  digitalWrite(greenLed, LOW);
-  note(1000, 4);
+void checkOut(int on, int off, int duration, int interval) {
   digitalWrite(greenLed, HIGH);
   note(1000, 4);
-  digitalWrite(greenLed, LOW);
+  note(1000, 4);
   doPulse(on, off, duration);
   delay(interval);
-  digitalWrite(greenLed, HIGH);
   doPulse(on, off, duration);
   delay(interval);
   delay(300);
-  digitalWrite(greenLed, HIGH);
+  digitalWrite(greenLed, LOW);
 }
 
-void checkError() {
-  digitalWrite(greenLed, LOW);
+void checkError(int on, int off, int duration, int interval) {
   digitalWrite(redLed, HIGH);
   note(1000, 6);
-  digitalWrite(redLed, LOW);
   note(800, 4);
-  digitalWrite(redLed, HIGH);
   note(1000, 6);
-  digitalWrite(redLed, LOW);
   doPulse(on, off, duration);
   delay(interval);
-  digitalWrite(redLed, HIGH);
   doPulse(on, off, duration * 0.75);
   delay(interval);
-  digitalWrite(redLed, LOW);
   doPulse(on, off, duration);
   delay(interval);
-  digitalWrite(redLed, HIGH);
   delay(150);
   digitalWrite(redLed, LOW);
-  digitalWrite(greenLed, HIGH);
 }
 
